@@ -211,11 +211,6 @@ const engine = new Engine(GODOT_CONFIG);
 			},
 		}).then(() => {
 			setStatusMode('hidden');
-			const canvas = document.getElementById('canvas');
-			canvas.focus();
-			document.addEventListener('click',     () => canvas.focus());
-			document.addEventListener('keydown',   () => canvas.focus());
-			document.addEventListener('touchstart', () => canvas.focus(), { passive: true });
 		}, displayFailureNotice);
 	}
 }());
