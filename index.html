@@ -192,8 +192,11 @@ function launchGame() {
 		print: function(text) { console.log('[GD]', text); },
 		printErr: function(text) {
 			console.error('[GD ERR]', text);
-			if (text && (text.indexOf('ERROR') !== -1 || text.indexOf('SCRIPT ERROR') !== -1 || text.indexOf('Invalid') !== -1)) {
-				showErr('[Game] ' + text);
+			if (text) {
+				var low = text.toLowerCase();
+				if (low.indexOf('error') !== -1 || low.indexOf('invalid') !== -1 || low.indexOf('script') !== -1 || low.indexOf('failed') !== -1 || low.indexOf('cannot') !== -1) {
+					showErr('[Game] ' + text);
+				}
 			}
 		}
 	}).then(function() {
