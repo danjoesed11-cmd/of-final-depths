@@ -8,7 +8,10 @@
 if (typeof window !== 'undefined') {
   /* ── PAGE CONTEXT: register this file as a service worker ── */
   (function () {
-    if (window.crossOriginIsolated) return; // already isolated — nothing to do
+    if (window.crossOriginIsolated) {
+      console.log('[coi-sw] Already cross-origin isolated.');
+      return;
+    }
 
     if (!('serviceWorker' in navigator)) {
       console.warn('[coi-sw] Service workers not supported — game may not load.');
@@ -16,61 +19,92 @@ if (typeof window !== 'undefined') {
     }
 
     var src = document.currentScript && document.currentScript.src;
-    if (!src) return;
+    if (!src) {
+      console.warn('[coi-sw] Could not determine script src.');
+      return;
+    }
 
     function reloadOnce() {
       if (sessionStorage.getItem('coi-reload')) {
         sessionStorage.removeItem('coi-reload');
-        return; // already reloaded once this session — don't loop
+        console.warn('[coi-sw] Already reloaded once — not looping.');
+        return;
       }
       sessionStorage.setItem('coi-reload', '1');
+      console.log('[coi-sw] Reloading to apply service worker headers...');
       window.location.reload();
     }
 
     navigator.serviceWorker.register(src).then(function (reg) {
-      console.log('[coi-sw] Registered.');
+      console.log('[coi-sw] Registered:', reg.scope);
 
-      // If the SW just installed (first time), wait for it to activate then reload
       if (reg.installing) {
+        console.log('[coi-sw] Installing...');
         reg.installing.addEventListener('statechange', function () {
-          if (this.state === 'activated') reloadOnce();
+          console.log('[coi-sw] SW state:', this.state);
+          if (this.state === 'activated') {
+            reloadOnce();
+          }
         });
         return;
       }
 
-      // SW was already waiting or active; reload so it takes control
+      if (reg.waiting) {
+        console.log('[coi-sw] SW waiting — skipping wait...');
+        reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+      }
+
       if (!navigator.serviceWorker.controller) {
+        console.log('[coi-sw] No controller yet, reloading...');
+        reloadOnce();
+      } else {
+        console.log('[coi-sw] SW already controlling — but not isolated? Trying reload...');
         reloadOnce();
       }
     }).catch(function (err) {
       console.error('[coi-sw] Registration failed:', err);
     });
 
-    // Also reload when the SW takes control of this page
     navigator.serviceWorker.addEventListener('controllerchange', function () {
-      if (!window.crossOriginIsolated) reloadOnce();
+      console.log('[coi-sw] Controller changed, crossOriginIsolated:', window.crossOriginIsolated);
+      if (!window.crossOriginIsolated) {
+        reloadOnce();
+      }
     });
   }());
 
 } else {
   /* ── SERVICE WORKER CONTEXT: intercept fetches, inject headers ── */
 
-  self.addEventListener('install', function () {
+  self.addEventListener('install', function (e) {
+    console.log('[coi-sw] Install');
     self.skipWaiting();
   });
 
   self.addEventListener('activate', function (e) {
+    console.log('[coi-sw] Activate');
     e.waitUntil(self.clients.claim());
+  });
+
+  self.addEventListener('message', function (e) {
+    if (e.data && e.data.type === 'SKIP_WAITING') {
+      self.skipWaiting();
+    }
   });
 
   self.addEventListener('fetch', function (e) {
     var req = e.request;
-    // Don't intercept no-cors requests to cross-origin URLs (causes opaque response issues)
+
+    // Skip non-GET requests
+    if (req.method !== 'GET') return;
+
+    // Skip cross-origin no-cors requests (opaque responses — can't add headers)
     if (req.cache === 'only-if-cached' && req.mode !== 'same-origin') return;
 
     e.respondWith(
       fetch(req).then(function (resp) {
-        if (resp.status === 0) return resp; // opaque — leave alone
+        // Opaque response — leave alone
+        if (resp.status === 0) return resp;
 
         var headers = new Headers(resp.headers);
         headers.set('Cross-Origin-Opener-Policy',   'same-origin');
@@ -81,8 +115,9 @@ if (typeof window !== 'undefined') {
           statusText: resp.statusText,
           headers:    headers,
         });
-      }).catch(function () {
-        return fetch(req); // fallback — try without header injection
+      }).catch(function (err) {
+        console.warn('[coi-sw] Fetch failed, falling back:', err);
+        return fetch(req);
       })
     );
   });
