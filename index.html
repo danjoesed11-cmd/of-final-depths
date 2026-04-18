@@ -123,7 +123,7 @@ html, body {
 
 		<div id="err-box"></div>
 
-		<script src="index.js?v=5"></script>
+		<script src="index.js?v=6"></script>
 		<script>
 var GODOT_CONFIG = {
 	"args": [],
@@ -192,7 +192,6 @@ function launchGame() {
 		print: function(text) { console.log('[GD]', text); },
 		printErr: function(text) {
 			console.error('[GD ERR]', text);
-			// Only surface actual errors, not info messages
 			if (text && (text.indexOf('ERROR') !== -1 || text.indexOf('SCRIPT ERROR') !== -1 || text.indexOf('Invalid') !== -1)) {
 				showErr('[Game] ' + text);
 			}
