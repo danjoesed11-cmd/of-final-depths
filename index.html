@@ -39,20 +39,12 @@ body {
 }
 
 #status {
-	background-color: #242424;
+	background-color: #1a1228;
 	display: flex;
 	flex-direction: column;
 	justify-content: center;
 	align-items: center;
 	visibility: visible;
-}
-
-#loading-text {
-	color: #ccc;
-	font-family: 'Noto Sans', Arial, sans-serif;
-	font-size: 1.1rem;
-	margin-top: 1rem;
-	letter-spacing: 0.05em;
 }
 
 #status-splash {
@@ -98,6 +90,20 @@ body {
 	text-align: center;
 	z-index: 1;
 }
+
+#loading-text {
+	color: #9988cc;
+	font-family: 'Noto Sans', Arial, sans-serif;
+	font-size: 1.05rem;
+	margin-top: 1rem;
+	letter-spacing: 0.08em;
+	animation: pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes pulse {
+	0%, 100% { opacity: 0.5; }
+	50%       { opacity: 1.0; }
+}
 		</style>
 		<link id="-gd-engine-icon" rel="icon" type="image/png" href="index.icon.png" />
 <link rel="apple-touch-icon" href="index.apple-touch-icon.png"/>
@@ -121,7 +127,7 @@ body {
 
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":733300,"index.wasm":37695054},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"serviceWorker":"coi-serviceworker.js"};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":736468,"index.wasm":37695054},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"serviceWorker":"coi-serviceworker.js"};
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 
@@ -129,31 +135,34 @@ const engine = new Engine(GODOT_CONFIG);
 window.addEventListener('error', function(e) {
 	var el = document.getElementById('status-notice');
 	var ov = document.getElementById('status');
+	var lt = document.getElementById('loading-text');
 	if (el && ov) {
 		el.textContent = 'Error: ' + (e.message || String(e));
 		el.style.display = 'block';
 		ov.style.visibility = 'visible';
 	}
+	if (lt) lt.style.display = 'none';
 });
 window.addEventListener('unhandledrejection', function(e) {
 	var el = document.getElementById('status-notice');
 	var ov = document.getElementById('status');
+	var lt = document.getElementById('loading-text');
 	if (el && ov) {
 		el.textContent = 'Error: ' + (e.reason || 'unknown');
 		el.style.display = 'block';
 		ov.style.visibility = 'visible';
 	}
+	if (lt) lt.style.display = 'none';
 });
 
 (function () {
 	const statusOverlay = document.getElementById('status');
 	const statusProgress = document.getElementById('status-progress');
 	const statusNotice = document.getElementById('status-notice');
+	const loadingText = document.getElementById('loading-text');
 
 	let initializing = true;
 	let statusMode = '';
-
-	var loadingText = document.getElementById('loading-text');
 
 	function setStatusMode(mode) {
 		if (statusMode === mode || !initializing) {
@@ -192,6 +201,7 @@ window.addEventListener('unhandledrejection', function(e) {
 			setStatusNotice('An unknown error occurred.');
 		}
 		setStatusMode('notice');
+		if (loadingText) loadingText.style.display = 'none';
 		initializing = false;
 	}
 
@@ -207,7 +217,6 @@ window.addEventListener('unhandledrejection', function(e) {
 			} catch (err) {
 				serviceWorkerRegistrationPromise = Promise.reject(new Error('Service worker registration failed.'));
 			}
-			// There's a chance that installing the service worker would fix the issue
 			Promise.race([
 				serviceWorkerRegistrationPromise.then((registration) => {
 					if (registration != null) {
@@ -215,18 +224,15 @@ window.addEventListener('unhandledrejection', function(e) {
 					}
 					return registration;
 				}).then(() => engine.installServiceWorker()),
-				// For some reason, `getRegistration()` can stall
 				new Promise((resolve) => {
 					setTimeout(() => resolve(), 2000);
 				}),
 			]).then(() => {
-				// Reload if there was no error.
 				window.location.reload();
 			}).catch((err) => {
 				console.error('Error while registering service worker:', err);
 			});
 		} else {
-			// Display the message as usual
 			const missingMsg = 'Error\nThe following features required to run Godot projects on the Web are missing:\n';
 			displayFailureNotice(missingMsg + missing.join('\n'));
 		}
@@ -250,4 +256,3 @@ window.addEventListener('unhandledrejection', function(e) {
 		</script>
 	</body>
 </html>
-
