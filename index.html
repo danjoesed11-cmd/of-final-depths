@@ -6,124 +6,138 @@
 		<script src="coi-serviceworker.js"></script>
 		<title>Of Depths Calling</title>
 		<style>
-html, body, #canvas {
-	margin: 0;
-	padding: 0;
-	border: 0;
-}
+* { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
 	color: white;
-	background-color: black;
+	background-color: #0a0812;
 	overflow: hidden;
 	touch-action: none;
+	width: 100vw;
+	height: 100vh;
 }
 
 #canvas {
 	display: block;
-}
-
-#canvas:focus {
-	outline: none;
-}
-
-#status, #status-splash, #status-progress {
+	width: 100%;
+	height: 100%;
 	position: absolute;
-	left: 0;
-	right: 0;
+	top: 0; left: 0;
 }
 
-#status, #status-splash {
-	top: 0;
-	bottom: 0;
-}
+#canvas:focus { outline: none; }
 
-#status {
-	background-color: #1a1228;
+/* Loading overlay */
+#load-screen {
+	position: fixed;
+	inset: 0;
+	background: #0a0812;
 	display: flex;
 	flex-direction: column;
-	justify-content: center;
 	align-items: center;
-	visibility: visible;
+	justify-content: center;
+	z-index: 100;
+	font-family: 'Segoe UI', Arial, sans-serif;
 }
 
-#status-splash {
-	max-height: 100%;
-	max-width: 100%;
-	margin: auto;
+#load-title {
+	font-size: 2.4rem;
+	font-weight: bold;
+	color: #f5d842;
+	letter-spacing: 0.12em;
+	margin-bottom: 0.5rem;
+	text-shadow: 0 0 24px #f5d84280;
 }
 
-#status-splash.show-image--false {
-	display: none;
+#load-sub {
+	font-size: 1rem;
+	color: #8877bb;
+	margin-bottom: 2.5rem;
+	letter-spacing: 0.06em;
 }
 
-#status-splash.fullsize--true {
-	height: 100%;
-	width: 100%;
-	object-fit: contain;
-}
-
-#status-splash.use-filter--false {
-	image-rendering: pixelated;
-}
-
-#status-progress, #status-notice {
-	display: none;
-}
-
-#status-progress {
-	bottom: 10%;
-	width: 50%;
-	margin: 0 auto;
-}
-
-#status-notice {
-	background-color: #5b3943;
-	border-radius: 0.5rem;
-	border: 1px solid #9b3943;
-	color: #e0e0e0;
-	font-family: 'Noto Sans', 'Droid Sans', Arial, sans-serif;
-	line-height: 1.3;
-	margin: 0 2rem;
+#load-bar-wrap {
+	width: 320px;
+	height: 10px;
+	background: #1e1630;
+	border-radius: 6px;
 	overflow: hidden;
-	padding: 1rem;
-	text-align: center;
-	z-index: 1;
+	margin-bottom: 1rem;
 }
 
-#loading-text {
-	color: #9988cc;
-	font-family: 'Noto Sans', Arial, sans-serif;
-	font-size: 1.05rem;
-	margin-top: 1rem;
+#load-bar {
+	height: 100%;
+	width: 0%;
+	background: linear-gradient(90deg, #6633cc, #cc44ff);
+	border-radius: 6px;
+	transition: width 0.15s ease;
+}
+
+#load-text {
+	font-size: 0.85rem;
+	color: #6655aa;
 	letter-spacing: 0.08em;
+	margin-bottom: 2rem;
 	animation: pulse 1.6s ease-in-out infinite;
 }
 
-@keyframes pulse {
-	0%, 100% { opacity: 0.5; }
-	50%       { opacity: 1.0; }
+@keyframes pulse { 0%,100%{opacity:0.4} 50%{opacity:1} }
+
+#play-btn {
+	display: none;
+	padding: 0.85rem 3rem;
+	font-size: 1.2rem;
+	font-weight: bold;
+	letter-spacing: 0.15em;
+	color: #fff;
+	background: linear-gradient(135deg, #3a1a6e, #7722cc);
+	border: 2px solid #aa55ff;
+	border-radius: 8px;
+	cursor: pointer;
+	box-shadow: 0 0 24px #7722cc88;
+	transition: transform 0.1s, box-shadow 0.1s;
+}
+
+#play-btn:hover {
+	transform: scale(1.05);
+	box-shadow: 0 0 36px #aa55ffcc;
+}
+
+#error-box {
+	display: none;
+	position: fixed;
+	top: 16px;
+	left: 50%;
+	transform: translateX(-50%);
+	background: #5b1a1a;
+	border: 1px solid #dd3333;
+	border-radius: 8px;
+	color: #fff;
+	padding: 0.75rem 1.25rem;
+	font-size: 0.9rem;
+	font-family: monospace;
+	z-index: 999;
+	max-width: 90vw;
+	word-break: break-word;
 }
 		</style>
 		<link id="-gd-engine-icon" rel="icon" type="image/png" href="index.icon.png" />
-<link rel="apple-touch-icon" href="index.apple-touch-icon.png"/>
-
+		<link rel="apple-touch-icon" href="index.apple-touch-icon.png"/>
 	</head>
 	<body>
-		<canvas id="canvas">
-			Your browser does not support the canvas tag.
-		</canvas>
+		<canvas id="canvas">Your browser does not support the canvas element.</canvas>
 
-		<noscript>
-			Your browser does not support JavaScript.
-		</noscript>
+		<noscript>JavaScript is required to play this game.</noscript>
 
-		<div id="status">
-			<img id="status-splash" class="show-image--true fullsize--false use-filter--true" src="index.png" alt="" style="max-height:60%;max-width:60%;object-fit:contain;">
-			<progress id="status-progress"></progress>
-			<div id="status-notice"></div>
-			<div id="loading-text">Loading...</div>
+		<div id="load-screen">
+			<div id="load-title">OF FINAL DEPTHS</div>
+			<div id="load-sub">a metroidvania</div>
+			<div id="load-bar-wrap"><div id="load-bar"></div></div>
+			<div id="load-text" id="load-text">Loading...</div>
+			<button id="play-btn" onclick="startGame()">▶  PLAY</button>
 		</div>
+
+		<div id="error-box"></div>
 
 		<script src="index.js"></script>
 		<script>
@@ -131,130 +145,61 @@ const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"e
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 
-// Global error catcher — surfaces any crash as a visible on-screen message
-window.addEventListener('error', function(e) {
-	var el = document.getElementById('status-notice');
-	var ov = document.getElementById('status');
-	var lt = document.getElementById('loading-text');
-	if (el) { el.textContent = 'Error: ' + (e.message || String(e)); el.style.display = 'block'; }
-	if (ov) ov.style.visibility = 'visible';
-	if (lt) lt.style.display = 'none';
-});
-window.addEventListener('unhandledrejection', function(e) {
-	var el = document.getElementById('status-notice');
-	var ov = document.getElementById('status');
-	var lt = document.getElementById('loading-text');
-	if (el) { el.textContent = 'Error: ' + (e.reason || 'unknown'); el.style.display = 'block'; }
-	if (ov) ov.style.visibility = 'visible';
-	if (lt) lt.style.display = 'none';
-});
+var _gameReady = false;
 
-function forceHideOverlay() {
-	var ov = document.getElementById('status');
-	if (ov && ov.parentNode) { ov.parentNode.removeChild(ov); }
+function showError(msg) {
+	var eb = document.getElementById('error-box');
+	if (eb) { eb.textContent = msg; eb.style.display = 'block'; }
+	console.error(msg);
 }
 
-(function () {
-	const statusOverlay = document.getElementById('status');
-	const statusProgress = document.getElementById('status-progress');
-	const statusNotice = document.getElementById('status-notice');
-	const loadingText = document.getElementById('loading-text');
+window.addEventListener('error', function(e) {
+	showError('JS Error: ' + (e.message || String(e)));
+});
+window.addEventListener('unhandledrejection', function(e) {
+	showError('Error: ' + (e.reason || 'unknown'));
+});
 
-	let initializing = true;
-	let statusMode = '';
+function startGame() {
+	var ls = document.getElementById('load-screen');
+	if (ls) ls.remove();
+	var canvas = document.getElementById('canvas');
+	if (canvas) { canvas.focus(); canvas.click(); }
+}
 
-	function setStatusMode(mode) {
-		if (statusMode === mode || !initializing) {
-			return;
-		}
-		if (mode === 'hidden') {
-			forceHideOverlay();
-			initializing = false;
-			return;
-		}
-		statusOverlay.style.visibility = 'visible';
-		statusProgress.style.display = mode === 'progress' ? 'block' : 'none';
-		statusNotice.style.display = mode === 'notice' ? 'block' : 'none';
-		if (loadingText) loadingText.style.display = mode === 'progress' ? 'block' : 'none';
-		statusMode = mode;
-	}
+(function() {
+	var loadBar  = document.getElementById('load-bar');
+	var loadText = document.getElementById('load-text');
+	var playBtn  = document.getElementById('play-btn');
 
-	function setStatusNotice(text) {
-		while (statusNotice.lastChild) {
-			statusNotice.removeChild(statusNotice.lastChild);
-		}
-		const lines = text.split('\n');
-		lines.forEach((line) => {
-			statusNotice.appendChild(document.createTextNode(line));
-			statusNotice.appendChild(document.createElement('br'));
-		});
-	}
-
-	function displayFailureNotice(err) {
-		console.error(err);
-		if (err instanceof Error) {
-			setStatusNotice(err.message);
-		} else if (typeof err === 'string') {
-			setStatusNotice(err);
-		} else {
-			setStatusNotice('An unknown error occurred.');
-		}
-		setStatusMode('notice');
-		if (loadingText) loadingText.style.display = 'none';
-		initializing = false;
-	}
-
-	const missing = Engine.getMissingFeatures({
-		threads: GODOT_THREADS_ENABLED,
-	});
+	const missing = Engine.getMissingFeatures({ threads: GODOT_THREADS_ENABLED });
 
 	if (missing.length !== 0) {
-		if (GODOT_CONFIG['serviceWorker'] && GODOT_CONFIG['ensureCrossOriginIsolationHeaders'] && 'serviceWorker' in navigator) {
-			let serviceWorkerRegistrationPromise;
-			try {
-				serviceWorkerRegistrationPromise = navigator.serviceWorker.getRegistration();
-			} catch (err) {
-				serviceWorkerRegistrationPromise = Promise.reject(new Error('Service worker registration failed.'));
-			}
-			Promise.race([
-				serviceWorkerRegistrationPromise.then((registration) => {
-					if (registration != null) {
-						return Promise.reject(new Error('Service worker already exists.'));
-					}
-					return registration;
-				}).then(() => engine.installServiceWorker()),
-				new Promise((resolve) => {
-					setTimeout(() => resolve(), 2000);
-				}),
-			]).then(() => {
-				window.location.reload();
-			}).catch((err) => {
-				console.error('Error while registering service worker:', err);
-			});
-		} else {
-			const missingMsg = 'Error\nThe following features required to run Godot projects on the Web are missing:\n';
-			displayFailureNotice(missingMsg + missing.join('\n'));
-		}
-	} else {
-		setStatusMode('progress');
-		engine.startGame({
-			'onProgress': function (current, total) {
-				if (current > 0 && total > 0) {
-					statusProgress.value = current;
-					statusProgress.max = total;
-				} else {
-					statusProgress.removeAttribute('value');
-					statusProgress.removeAttribute('max');
-				}
-			},
-		}).then(() => {
-			// Remove overlay immediately when game starts
-			forceHideOverlay();
-		}, displayFailureNotice);
-
-		// Hard fallback: nuke overlay after 90 s no matter what
-		setTimeout(forceHideOverlay, 90000);
+		if (loadText) loadText.textContent = 'Missing: ' + missing.join(', ');
+		showError('Browser missing required features: ' + missing.join(', '));
+		return;
 	}
+
+	engine.startGame({
+		onProgress: function(current, total) {
+			if (total > 0 && loadBar) {
+				loadBar.style.width = Math.round(current / total * 100) + '%';
+			}
+		}
+	}).then(function() {
+		_gameReady = true;
+		if (loadText) loadText.style.display = 'none';
+		if (playBtn)  { playBtn.style.display = 'block'; playBtn.focus(); }
+	}).catch(function(err) {
+		showError('Failed to start: ' + (err && err.message ? err.message : String(err)));
+	});
+
+	// Hard fallback: if promise never settles after 120s, show a reload hint
+	setTimeout(function() {
+		if (!_gameReady) {
+			showError('Stuck loading — try Ctrl+Shift+R (hard refresh) to clear the cache.');
+		}
+	}, 120000);
 }());
 		</script>
 	</body>
