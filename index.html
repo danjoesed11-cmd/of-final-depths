@@ -119,7 +119,7 @@ body {
 		</noscript>
 
 		<div id="status">
-			<img id="status-splash" class="show-image--true fullsize--true use-filter--true" src="index.png" alt="">
+			<img id="status-splash" class="show-image--true fullsize--false use-filter--true" src="index.png" alt="" style="max-height:60%;max-width:60%;object-fit:contain;">
 			<progress id="status-progress"></progress>
 			<div id="status-notice"></div>
 			<div id="loading-text">Loading...</div>
@@ -127,32 +127,32 @@ body {
 
 		<script src="index.js"></script>
 		<script>
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":744804,"index.wasm":37695054},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"serviceWorker":"coi-serviceworker.js"};
+const GODOT_THREADS_ENABLED = false;
+const engine = new Engine(GODOT_CONFIG);
+
 // Global error catcher — surfaces any crash as a visible on-screen message
 window.addEventListener('error', function(e) {
 	var el = document.getElementById('status-notice');
 	var ov = document.getElementById('status');
 	var lt = document.getElementById('loading-text');
-	if (el && ov) {
-		el.textContent = 'Error: ' + (e.message || String(e));
-		el.style.display = 'block';
-		ov.style.visibility = 'visible';
-	}
+	if (el) { el.textContent = 'Error: ' + (e.message || String(e)); el.style.display = 'block'; }
+	if (ov) ov.style.visibility = 'visible';
 	if (lt) lt.style.display = 'none';
 });
 window.addEventListener('unhandledrejection', function(e) {
 	var el = document.getElementById('status-notice');
 	var ov = document.getElementById('status');
 	var lt = document.getElementById('loading-text');
-	if (el && ov) {
-		el.textContent = 'Error: ' + (e.reason || 'unknown');
-		el.style.display = 'block';
-		ov.style.visibility = 'visible';
-	}
+	if (el) { el.textContent = 'Error: ' + (e.reason || 'unknown'); el.style.display = 'block'; }
+	if (ov) ov.style.visibility = 'visible';
 	if (lt) lt.style.display = 'none';
 });
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":744740,"index.wasm":37695054},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"serviceWorker":"coi-serviceworker.js"};
-const GODOT_THREADS_ENABLED = false;
-const engine = new Engine(GODOT_CONFIG);
+
+function forceHideOverlay() {
+	var ov = document.getElementById('status');
+	if (ov && ov.parentNode) { ov.parentNode.removeChild(ov); }
+}
 
 (function () {
 	const statusOverlay = document.getElementById('status');
@@ -168,7 +168,7 @@ const engine = new Engine(GODOT_CONFIG);
 			return;
 		}
 		if (mode === 'hidden') {
-			statusOverlay.remove();
+			forceHideOverlay();
 			initializing = false;
 			return;
 		}
@@ -216,7 +216,6 @@ const engine = new Engine(GODOT_CONFIG);
 			} catch (err) {
 				serviceWorkerRegistrationPromise = Promise.reject(new Error('Service worker registration failed.'));
 			}
-			// There's a chance that installing the service worker would fix the issue
 			Promise.race([
 				serviceWorkerRegistrationPromise.then((registration) => {
 					if (registration != null) {
@@ -224,18 +223,15 @@ const engine = new Engine(GODOT_CONFIG);
 					}
 					return registration;
 				}).then(() => engine.installServiceWorker()),
-				// For some reason, `getRegistration()` can stall
 				new Promise((resolve) => {
 					setTimeout(() => resolve(), 2000);
 				}),
 			]).then(() => {
-				// Reload if there was no error.
 				window.location.reload();
 			}).catch((err) => {
 				console.error('Error while registering service worker:', err);
 			});
 		} else {
-			// Display the message as usual
 			const missingMsg = 'Error\nThe following features required to run Godot projects on the Web are missing:\n';
 			displayFailureNotice(missingMsg + missing.join('\n'));
 		}
@@ -252,11 +248,14 @@ const engine = new Engine(GODOT_CONFIG);
 				}
 			},
 		}).then(() => {
-			setStatusMode('hidden');
+			// Remove overlay immediately when game starts
+			forceHideOverlay();
 		}, displayFailureNotice);
+
+		// Hard fallback: nuke overlay after 90 s no matter what
+		setTimeout(forceHideOverlay, 90000);
 	}
 }());
 		</script>
 	</body>
 </html>
-
