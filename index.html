@@ -29,189 +29,151 @@ html, body {
 #load-screen {
 	position: fixed;
 	inset: 0;
-	background: #0d0a18;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
 	justify-content: center;
-	z-index: 100;
-	font-family: Arial, sans-serif;
-	color: white;
+	background: #050310;
+	z-index: 9999;
+	font-family: 'Segoe UI', sans-serif;
+	color: #c8b8f0;
+	transition: opacity 0.6s ease;
 }
 
-#load-title {
-	font-size: 2.2rem;
-	font-weight: bold;
-	color: #f0d040;
-	letter-spacing: 4px;
-	margin-bottom: 8px;
+#load-screen.fade-out { opacity: 0; pointer-events: none; }
+
+.ls-title {
+	font-size: clamp(28px, 5vw, 52px);
+	font-weight: 900;
+	letter-spacing: 0.18em;
+	text-transform: uppercase;
+	color: #a06cff;
+	text-shadow: 0 0 28px #7c3dffcc, 0 0 6px #fff4;
+	margin-bottom: 10px;
 }
 
-#load-sub {
-	font-size: 0.95rem;
-	color: #8877bb;
-	margin-bottom: 32px;
+.ls-sub {
+	font-size: clamp(11px, 1.8vw, 15px);
+	letter-spacing: 0.22em;
+	color: #7a6aaa;
+	margin-bottom: 44px;
+	text-transform: uppercase;
 }
 
-#load-bar-wrap {
-	width: 300px; height: 8px;
-	background: #1e1630;
-	border-radius: 4px;
+.ls-bar-wrap {
+	width: min(460px, 80vw);
+	height: 7px;
+	background: #1a1030;
+	border-radius: 6px;
 	overflow: hidden;
-	margin-bottom: 12px;
+	margin-bottom: 14px;
+	box-shadow: 0 0 12px #5c2fff55;
 }
 
-#load-bar {
-	height: 100%; width: 0%;
-	background: #9944ff;
-	border-radius: 4px;
-	transition: width 0.1s;
-}
-
-#load-pct {
-	font-size: 0.85rem;
-	color: #6655aa;
-	margin-bottom: 28px;
-}
-
-#play-btn {
-	display: none;
-	padding: 12px 48px;
-	font-size: 1.1rem;
-	font-weight: bold;
-	letter-spacing: 3px;
-	color: #fff;
-	background: #5522aa;
-	border: 2px solid #9955ff;
+.ls-bar {
+	height: 100%;
+	width: 0%;
+	background: linear-gradient(90deg, #5c2fff, #a06cff, #c86cff);
 	border-radius: 6px;
-	cursor: pointer;
+	transition: width 0.25s ease;
+	box-shadow: 0 0 10px #a06cffaa;
 }
 
-#play-btn:hover { background: #7733cc; }
+.ls-pct {
+	font-size: 13px;
+	color: #9070d0;
+	letter-spacing: 0.12em;
+	margin-bottom: 30px;
+}
 
-#err-box {
-	display: none;
-	position: fixed;
-	top: 12px; left: 50%;
-	transform: translateX(-50%);
-	background: #661111;
-	border: 1px solid #ff3333;
-	border-radius: 6px;
-	color: #fff;
-	padding: 10px 18px;
-	font-size: 0.82rem;
-	font-family: monospace;
-	z-index: 200;
-	max-width: 90vw;
-	white-space: pre-wrap;
-	word-break: break-word;
+.ls-hint {
+	font-size: clamp(10px, 1.4vw, 13px);
+	color: #5a4880;
+	letter-spacing: 0.10em;
+	font-style: italic;
+}
+
+.ls-stars {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	overflow: hidden;
+}
+
+.ls-star {
+	position: absolute;
+	border-radius: 50%;
+	background: #fff;
+	opacity: 0;
+	animation: twinkle 3s infinite ease-in-out;
+}
+
+@keyframes twinkle {
+	0%, 100% { opacity: 0; transform: scale(0.6); }
+	50%       { opacity: 0.7; transform: scale(1.2); }
 }
 		</style>
-		<link rel="icon" type="image/png" href="index.icon.png">
-		<link rel="apple-touch-icon" href="index.apple-touch-icon.png">
 	</head>
 	<body>
-		<canvas id="canvas">Your browser does not support canvas.</canvas>
 
-		<div id="load-screen">
-			<div id="load-title">OF FINAL DEPTHS</div>
-			<div id="load-sub">a metroidvania</div>
-			<div id="load-bar-wrap"><div id="load-bar"></div></div>
-			<div id="load-pct">0%</div>
-			<button id="play-btn" onclick="launchGame()">PLAY</button>
-		</div>
+<div id="load-screen">
+	<div class="ls-stars" id="ls-stars"></div>
+	<div class="ls-title">Of Depths Calling</div>
+	<div class="ls-sub">Enter the dungeon &nbsp;·&nbsp; Survive the dark</div>
+	<div class="ls-bar-wrap"><div class="ls-bar" id="ls-bar"></div></div>
+	<div class="ls-pct" id="ls-pct">Loading…</div>
+	<div class="ls-hint" id="ls-hint">Preparing the abyss…</div>
+</div>
 
-		<div id="err-box"></div>
+<canvas id="canvas">Your browser does not support the canvas tag.</canvas>
+<noscript>Your browser does not support JavaScript.</noscript>
 
-		<script src="index.js?v=17"></script>
+<script>
+(function(){
+	var stars = document.getElementById('ls-stars');
+	for(var i=0;i<55;i++){
+		var s=document.createElement('div');
+		s.className='ls-star';
+		var sz=(Math.random()*2.4+0.8).toFixed(1);
+		s.style.cssText='width:'+sz+'px;height:'+sz+'px;top:'+(Math.random()*100)+'%;left:'+(Math.random()*100)+'%;animation-delay:'+(Math.random()*3).toFixed(2)+'s;animation-duration:'+(2+Math.random()*2).toFixed(2)+'s';
+		stars.appendChild(s);
+	}
+	var hints=['Sharpening blades…','Waking the dungeon…','Counting the bones…','Charging the arcane…','Polishing the spear…','Binding the shadows…','Brewing potions…','Summoning allies…','Sealing the void…','Loading darkness…'];
+	document.getElementById('ls-hint').textContent=hints[Math.floor(Math.random()*hints.length)];
+})();
+</script>
+
+		<script src="index.js?v=18"></script>
 		<script>
-var GODOT_CONFIG = {
-	"args": [],
-	"canvasResizePolicy": 2,
-	"emscriptenPoolSize": 8,
-	"ensureCrossOriginIsolationHeaders": false,
-	"executable": "index",
-	"experimentalVK": false,
-	"fileSizes": {"index.pck": 746612, "index.wasm": 37695054},
-	"focusCanvas": true,
-	"gdextensionLibs": [],
-	"godotPoolSize": 4,
-	"serviceWorker": "coi-serviceworker.js"
-};
-var GODOT_THREADS_ENABLED = false;
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":761748,"index.wasm":37695054},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
+const GODOT_THREADS_ENABLED = false;
+const engine = new Engine(GODOT_CONFIG);
 
-var _ready = false;
-
-function showErr(msg) {
-	var b = document.getElementById('err-box');
-	if (!b) return;
-	b.textContent = (b.textContent ? b.textContent + '\n' : '') + msg;
-	b.style.display = 'block';
-	console.error(msg);
-}
-
-window.onerror = function(msg, src, line) {
-	showErr('Error: ' + msg + (src ? ' (' + src + ':' + line + ')' : ''));
-};
-window.onunhandledrejection = function(e) {
-	showErr('Error: ' + (e.reason || 'unknown rejection'));
-};
-
-function launchGame() {
-	var ls = document.getElementById('load-screen');
-	if (ls) ls.style.display = 'none';
-	var c = document.getElementById('canvas');
-	if (c) c.focus();
-}
-
-(function() {
-	if (typeof Engine === 'undefined') {
-		showErr('index.js failed to load. Try Ctrl+Shift+R to hard refresh.');
-		return;
-	}
-
-	var engine = new Engine(GODOT_CONFIG);
-
-	var bar = document.getElementById('load-bar');
-	var pct = document.getElementById('load-pct');
-	var btn = document.getElementById('play-btn');
-
-	var missing = Engine.getMissingFeatures({threads: GODOT_THREADS_ENABLED});
-	if (missing.length > 0) {
-		showErr('Browser is missing: ' + missing.join(', '));
-	}
+(function () {
+	var bar    = document.getElementById('ls-bar');
+	var pct    = document.getElementById('ls-pct');
+	var screen = document.getElementById('load-screen');
 
 	engine.startGame({
-		onProgress: function(current, total) {
+		'onProgress': function (current, total) {
 			if (total > 0) {
 				var p = Math.round(current / total * 100);
-				if (bar) bar.style.width = p + '%';
-				if (pct) pct.textContent = p + '%';
+				bar.style.width = p + '%';
+				pct.textContent = p + '%';
 			}
 		},
-		print: function(text) { console.log('[GD]', text); },
-		printErr: function(text) {
-			console.error('[GD ERR]', text);
-			if (text) {
-				var low = text.toLowerCase();
-				if (low.indexOf('error') !== -1 || low.indexOf('invalid') !== -1 || low.indexOf('script') !== -1 || low.indexOf('failed') !== -1 || low.indexOf('cannot') !== -1) {
-					showErr('[Game] ' + text);
-				}
-			}
-		}
-	}).then(function() {
-		_ready = true;
-		if (pct) pct.textContent = 'Ready!';
-		if (btn) btn.style.display = 'block';
-	}).catch(function(err) {
-		showErr('Start failed: ' + (err && err.message ? err.message : String(err)));
+	}).then(function () {
+		bar.style.width = '100%';
+		pct.textContent = '100%';
+		setTimeout(function(){
+			screen.classList.add('fade-out');
+			setTimeout(function(){ screen.remove(); }, 650);
+		}, 300);
+	}).catch(function (err) {
+		pct.textContent = 'Failed to load: ' + (err.message || err);
+		bar.style.background = '#ff4444';
+		console.error(err);
 	});
-
-	setTimeout(function() {
-		if (!_ready) {
-			showErr('Still loading after 2 min — try Ctrl+Shift+R (hard refresh)');
-		}
-	}, 120000);
 }());
 		</script>
 	</body>
