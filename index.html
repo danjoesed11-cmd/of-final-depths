@@ -3,218 +3,178 @@
 	<head>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0">
+		<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+		<meta http-equiv="Pragma" content="no-cache">
+		<meta http-equiv="Expires" content="0">
+		<script src="coi-serviceworker.js"></script>
 		<title>Of Depths Calling</title>
 		<style>
-html, body, #canvas {
-	margin: 0;
-	padding: 0;
-	border: 0;
-}
+* { margin: 0; padding: 0; box-sizing: border-box; }
 
-body {
-	color: white;
-	background-color: black;
+html, body {
+	width: 100%; height: 100%;
+	background: #000;
 	overflow: hidden;
-	touch-action: none;
 }
 
 #canvas {
 	display: block;
-}
-
-#canvas:focus {
-	outline: none;
-}
-
-#status, #status-splash, #status-progress {
 	position: absolute;
-	left: 0;
-	right: 0;
+	top: 0; left: 0;
+	width: 100%; height: 100%;
 }
 
-#status, #status-splash {
-	top: 0;
-	bottom: 0;
-}
+#canvas:focus { outline: none; }
 
-#status {
-	background-color: #242424;
+#load-screen {
+	position: fixed;
+	inset: 0;
 	display: flex;
 	flex-direction: column;
-	justify-content: center;
 	align-items: center;
-	visibility: hidden;
+	justify-content: center;
+	background: #050310;
+	z-index: 9999;
+	font-family: 'Segoe UI', sans-serif;
+	color: #c8b8f0;
+	transition: opacity 0.6s ease;
 }
 
-#status-splash {
-	max-height: 100%;
-	max-width: 100%;
-	margin: auto;
+#load-screen.fade-out { opacity: 0; pointer-events: none; }
+
+.ls-title {
+	font-size: clamp(28px, 5vw, 52px);
+	font-weight: 900;
+	letter-spacing: 0.18em;
+	text-transform: uppercase;
+	color: #a06cff;
+	text-shadow: 0 0 28px #7c3dffcc, 0 0 6px #fff4;
+	margin-bottom: 10px;
 }
 
-#status-splash.show-image--false {
-	display: none;
+.ls-sub {
+	font-size: clamp(11px, 1.8vw, 15px);
+	letter-spacing: 0.22em;
+	color: #7a6aaa;
+	margin-bottom: 44px;
+	text-transform: uppercase;
 }
 
-#status-splash.fullsize--true {
-	height: 100%;
-	width: 100%;
-	object-fit: contain;
-}
-
-#status-splash.use-filter--false {
-	image-rendering: pixelated;
-}
-
-#status-progress, #status-notice {
-	display: none;
-}
-
-#status-progress {
-	bottom: 10%;
-	width: 50%;
-	margin: 0 auto;
-}
-
-#status-notice {
-	background-color: #5b3943;
-	border-radius: 0.5rem;
-	border: 1px solid #9b3943;
-	color: #e0e0e0;
-	font-family: 'Noto Sans', 'Droid Sans', Arial, sans-serif;
-	line-height: 1.3;
-	margin: 0 2rem;
+.ls-bar-wrap {
+	width: min(460px, 80vw);
+	height: 7px;
+	background: #1a1030;
+	border-radius: 6px;
 	overflow: hidden;
-	padding: 1rem;
-	text-align: center;
-	z-index: 1;
+	margin-bottom: 14px;
+	box-shadow: 0 0 12px #5c2fff55;
+}
+
+.ls-bar {
+	height: 100%;
+	width: 0%;
+	background: linear-gradient(90deg, #5c2fff, #a06cff, #c86cff);
+	border-radius: 6px;
+	transition: width 0.25s ease;
+	box-shadow: 0 0 10px #a06cffaa;
+}
+
+.ls-pct {
+	font-size: 13px;
+	color: #9070d0;
+	letter-spacing: 0.12em;
+	margin-bottom: 30px;
+}
+
+.ls-hint {
+	font-size: clamp(10px, 1.4vw, 13px);
+	color: #5a4880;
+	letter-spacing: 0.10em;
+	font-style: italic;
+}
+
+.ls-stars {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	overflow: hidden;
+}
+
+.ls-star {
+	position: absolute;
+	border-radius: 50%;
+	background: #fff;
+	opacity: 0;
+	animation: twinkle 3s infinite ease-in-out;
+}
+
+@keyframes twinkle {
+	0%, 100% { opacity: 0; transform: scale(0.6); }
+	50%       { opacity: 0.7; transform: scale(1.2); }
 }
 		</style>
-		<link id="-gd-engine-icon" rel="icon" type="image/png" href="index.icon.png" />
-<link rel="apple-touch-icon" href="index.apple-touch-icon.png"/>
-
 	</head>
 	<body>
-		<canvas id="canvas">
-			Your browser does not support the canvas tag.
-		</canvas>
 
-		<noscript>
-			Your browser does not support JavaScript.
-		</noscript>
+<div id="load-screen">
+	<div class="ls-stars" id="ls-stars"></div>
+	<div class="ls-title">Of Depths Calling</div>
+	<div class="ls-sub">Enter the dungeon &nbsp;·&nbsp; Survive the dark</div>
+	<div class="ls-bar-wrap"><div class="ls-bar" id="ls-bar"></div></div>
+	<div class="ls-pct" id="ls-pct">Loading…</div>
+	<div class="ls-hint" id="ls-hint">Preparing the abyss…</div>
+</div>
 
-		<div id="status">
-			<img id="status-splash" class="show-image--true fullsize--true use-filter--true" src="index.png" alt="">
-			<progress id="status-progress"></progress>
-			<div id="status-notice"></div>
-		</div>
+<canvas id="canvas">Your browser does not support the canvas tag.</canvas>
+<noscript>Your browser does not support JavaScript.</noscript>
 
-		<script src="index.js"></script>
+<script>
+(function(){
+	var stars = document.getElementById('ls-stars');
+	for(var i=0;i<55;i++){
+		var s=document.createElement('div');
+		s.className='ls-star';
+		var sz=(Math.random()*2.4+0.8).toFixed(1);
+		s.style.cssText='width:'+sz+'px;height:'+sz+'px;top:'+(Math.random()*100)+'%;left:'+(Math.random()*100)+'%;animation-delay:'+(Math.random()*3).toFixed(2)+'s;animation-duration:'+(2+Math.random()*2).toFixed(2)+'s';
+		stars.appendChild(s);
+	}
+	var hints=['Sharpening blades…','Waking the dungeon…','Counting the bones…','Charging the arcane…','Polishing the spear…','Binding the shadows…','Brewing potions…','Summoning allies…','Sealing the void…','Loading darkness…'];
+	document.getElementById('ls-hint').textContent=hints[Math.floor(Math.random()*hints.length)];
+})();
+</script>
+
+		<script src="index.js?v=24"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":896580,"index.wasm":37695054},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":833972,"index.wasm":37695054},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 
 (function () {
-	const statusOverlay = document.getElementById('status');
-	const statusProgress = document.getElementById('status-progress');
-	const statusNotice = document.getElementById('status-notice');
+	var bar    = document.getElementById('ls-bar');
+	var pct    = document.getElementById('ls-pct');
+	var screen = document.getElementById('load-screen');
 
-	let initializing = true;
-	let statusMode = '';
-
-	function setStatusMode(mode) {
-		if (statusMode === mode || !initializing) {
-			return;
-		}
-		if (mode === 'hidden') {
-			statusOverlay.remove();
-			initializing = false;
-			return;
-		}
-		statusOverlay.style.visibility = 'visible';
-		statusProgress.style.display = mode === 'progress' ? 'block' : 'none';
-		statusNotice.style.display = mode === 'notice' ? 'block' : 'none';
-		statusMode = mode;
-	}
-
-	function setStatusNotice(text) {
-		while (statusNotice.lastChild) {
-			statusNotice.removeChild(statusNotice.lastChild);
-		}
-		const lines = text.split('\n');
-		lines.forEach((line) => {
-			statusNotice.appendChild(document.createTextNode(line));
-			statusNotice.appendChild(document.createElement('br'));
-		});
-	}
-
-	function displayFailureNotice(err) {
-		console.error(err);
-		if (err instanceof Error) {
-			setStatusNotice(err.message);
-		} else if (typeof err === 'string') {
-			setStatusNotice(err);
-		} else {
-			setStatusNotice('An unknown error occurred.');
-		}
-		setStatusMode('notice');
-		initializing = false;
-	}
-
-	const missing = Engine.getMissingFeatures({
-		threads: GODOT_THREADS_ENABLED,
-	});
-
-	if (missing.length !== 0) {
-		if (GODOT_CONFIG['serviceWorker'] && GODOT_CONFIG['ensureCrossOriginIsolationHeaders'] && 'serviceWorker' in navigator) {
-			let serviceWorkerRegistrationPromise;
-			try {
-				serviceWorkerRegistrationPromise = navigator.serviceWorker.getRegistration();
-			} catch (err) {
-				serviceWorkerRegistrationPromise = Promise.reject(new Error('Service worker registration failed.'));
+	engine.startGame({
+		'onProgress': function (current, total) {
+			if (total > 0) {
+				var p = Math.round(current / total * 100);
+				bar.style.width = p + '%';
+				pct.textContent = p + '%';
 			}
-			// There's a chance that installing the service worker would fix the issue
-			Promise.race([
-				serviceWorkerRegistrationPromise.then((registration) => {
-					if (registration != null) {
-						return Promise.reject(new Error('Service worker already exists.'));
-					}
-					return registration;
-				}).then(() => engine.installServiceWorker()),
-				// For some reason, `getRegistration()` can stall
-				new Promise((resolve) => {
-					setTimeout(() => resolve(), 2000);
-				}),
-			]).then(() => {
-				// Reload if there was no error.
-				window.location.reload();
-			}).catch((err) => {
-				console.error('Error while registering service worker:', err);
-			});
-		} else {
-			// Display the message as usual
-			const missingMsg = 'Error\nThe following features required to run Godot projects on the Web are missing:\n';
-			displayFailureNotice(missingMsg + missing.join('\n'));
-		}
-	} else {
-		setStatusMode('progress');
-		engine.startGame({
-			'onProgress': function (current, total) {
-				if (current > 0 && total > 0) {
-					statusProgress.value = current;
-					statusProgress.max = total;
-				} else {
-					statusProgress.removeAttribute('value');
-					statusProgress.removeAttribute('max');
-				}
-			},
-		}).then(() => {
-			setStatusMode('hidden');
-		}, displayFailureNotice);
-	}
+		},
+	}).then(function () {
+		bar.style.width = '100%';
+		pct.textContent = '100%';
+		setTimeout(function(){
+			screen.classList.add('fade-out');
+			setTimeout(function(){ screen.remove(); }, 650);
+		}, 300);
+	}).catch(function (err) {
+		pct.textContent = 'Failed to load: ' + (err.message || err);
+		bar.style.background = '#ff4444';
+		console.error(err);
+	});
 }());
 		</script>
 	</body>
 </html>
-
